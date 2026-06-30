@@ -1,0 +1,1107 @@
+{
+  "datasets": [
+    {
+      "name": "top_drugs",
+      "displayName": "상위 20 처방 약물",
+      "queryLines": [
+        "SELECT\n",
+        "  drug_source_value AS drug_name,\n",
+        "  COUNT(DISTINCT person_id) AS patient_count,\n",
+        "  COUNT(drug_exposure_id) AS exposure_count\n",
+        "FROM\n",
+        "  cntdatabricksdemo_lakehouse01.cnt_healthcare_gold_omop.drug_exposure\n",
+        "WHERE\n",
+        "  drug_source_value IS NOT NULL\n",
+        "  AND drug_source_value != ''\n",
+        "GROUP BY\n",
+        "  drug_source_value\n",
+        "ORDER BY\n",
+        "  exposure_count DESC\n",
+        "LIMIT 20"
+      ]
+    },
+    {
+      "name": "top_conditions",
+      "displayName": "상위 20 질병",
+      "queryLines": [
+        "SELECT\n",
+        "  condition_source_value AS condition_name,\n",
+        "  COUNT(DISTINCT person_id) AS patient_count,\n",
+        "  COUNT(condition_occurrence_id) AS occurrence_count\n",
+        "FROM\n",
+        "  cntdatabricksdemo_lakehouse01.cnt_healthcare_gold_omop.condition_occurrence\n",
+        "WHERE\n",
+        "  condition_source_value IS NOT NULL\n",
+        "  AND condition_source_value != ''\n",
+        "GROUP BY\n",
+        "  condition_source_value\n",
+        "ORDER BY\n",
+        "  occurrence_count DESC\n",
+        "LIMIT 20"
+      ]
+    },
+    {
+      "name": "visit_trends",
+      "displayName": "방문 추이",
+      "config": {
+        "dimensions": [
+          {
+            "expr": "YEAR(visit_start_date)",
+            "name": "visit_year"
+          },
+          {
+            "expr": "DATE_TRUNC('MONTH', visit_start_date)",
+            "name": "visit_month"
+          }
+        ],
+        "measures": [
+          {
+            "expr": "COUNT(DISTINCT visit_occurrence_id)",
+            "name": "visit_count"
+          },
+          {
+            "expr": "COUNT(DISTINCT person_id)",
+            "name": "patient_count"
+          }
+        ],
+        "source": "cntdatabricksdemo_lakehouse01.cnt_healthcare_gold_omop.visit_occurrence",
+        "version": "1.1"
+      }
+    },
+    {
+      "name": "patient_demographics",
+      "displayName": "환자 인구통계",
+      "config": {
+        "dimensions": [
+          {
+            "expr": "gender_source_value",
+            "name": "gender"
+          },
+          {
+            "expr": "race_source_value",
+            "name": "race"
+          },
+          {
+            "expr": "ethnicity_source_value",
+            "name": "ethnicity"
+          },
+          {
+            "expr": "age_group",
+            "name": "age_group"
+          },
+          {
+            "expr": "year_of_birth",
+            "name": "birth_year"
+          },
+          {
+            "expr": "birth_datetime",
+            "name": "birth_date"
+          }
+        ],
+        "measures": [
+          {
+            "expr": "COUNT(DISTINCT person_id)",
+            "name": "patient_count"
+          },
+          {
+            "expr": "SUM(is_deceased)",
+            "name": "deceased_count"
+          },
+          {
+            "expr": "AVG(age)",
+            "name": "avg_age"
+          }
+        ],
+        "source": "SELECT \n  p.person_id,\n  p.gender_source_value,\n  p.race_source_value,\n  p.ethnicity_source_value,\n  p.year_of_birth,\n  (2026 - p.year_of_birth) AS age,\n  CASE\n    WHEN (2026 - p.year_of_birth) < 18 THEN '0-17세'\n    WHEN (2026 - p.year_of_birth) BETWEEN 18 AND 29 THEN '18-29세'\n    WHEN (2026 - p.year_of_birth) BETWEEN 30 AND 39 THEN '30-39세'\n    WHEN (2026 - p.year_of_birth) BETWEEN 40 AND 49 THEN '40-49세'\n    WHEN (2026 - p.year_of_birth) BETWEEN 50 AND 59 THEN '50-59세'\n    WHEN (2026 - p.year_of_birth) BETWEEN 60 AND 69 THEN '60-69세'\n    WHEN (2026 - p.year_of_birth) >= 70 THEN '70세 이상'\n    ELSE '미상'\n  END AS age_group,\n  p.birth_datetime,\n  CASE WHEN d.person_id IS NOT NULL THEN 1 ELSE 0 END AS is_deceased\nFROM cntdatabricksdemo_lakehouse01.cnt_healthcare_gold_omop.person p LEFT JOIN cntdatabricksdemo_lakehouse01.cnt_healthcare_gold_omop.death d\n  ON p.person_id = d.person_id\n",
+        "version": "1.1"
+      }
+    }
+  ],
+  "pages": [
+    {
+      "name": "ff203da1",
+      "displayName": "환자 개요",
+      "layout": [
+        {
+          "widget": {
+            "name": "header_p1",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## 환자 인구통계 현황\n",
+                "OMOP CDM `person` 테이블 기반 임상환자 성별, 연령대, 인종, 민족 분포 분석 (사망 정보 포함)"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "counter_patient_total",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "patient_demographics",
+                  "fields": [
+                    {
+                      "name": "measure(patient_count)",
+                      "expression": "MEASURE(`patient_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "data": {
+                "queryName": "main_query"
+              },
+              "encodings": {
+                "value": {
+                  "displayName": "전체 환자 수",
+                  "fieldName": "measure(patient_count)",
+                  "format": {
+                    "abbreviation": "compact",
+                    "type": "number-plain"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "전체 환자 수"
+              },
+              "version": 2,
+              "widgetType": "counter"
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "counter_avg_age",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "patient_demographics",
+                  "fields": [
+                    {
+                      "name": "measure(avg_age)",
+                      "expression": "MEASURE(`avg_age`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "data": {
+                "queryName": "main_query"
+              },
+              "encodings": {
+                "value": {
+                  "displayName": "평균 연령 (세)",
+                  "fieldName": "measure(avg_age)",
+                  "format": {
+                    "abbreviation": "none",
+                    "decimalPlaces": {
+                      "places": 1,
+                      "type": "exact"
+                    },
+                    "type": "number-plain"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "평균 연령"
+              },
+              "version": 2,
+              "widgetType": "counter"
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 2,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "counter_deceased",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "patient_demographics",
+                  "fields": [
+                    {
+                      "name": "measure(deceased_count)",
+                      "expression": "MEASURE(`deceased_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "data": {
+                "queryName": "main_query"
+              },
+              "encodings": {
+                "value": {
+                  "displayName": "사망 환자 수",
+                  "fieldName": "measure(deceased_count)",
+                  "format": {
+                    "abbreviation": "compact",
+                    "type": "number-plain"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "사망 환자 수"
+              },
+              "version": 2,
+              "widgetType": "counter"
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 2,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "bar_gender",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "patient_demographics",
+                  "fields": [
+                    {
+                      "name": "gender",
+                      "expression": "`gender`"
+                    },
+                    {
+                      "name": "measure(patient_count)",
+                      "expression": "MEASURE(`patient_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "data": {
+                "queryName": "main_query"
+              },
+              "encodings": {
+                "x": {
+                  "displayName": "성별",
+                  "fieldName": "gender",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "displayName": "환자 수",
+                  "fieldName": "measure(patient_count)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "성별 환자 분포"
+              },
+              "version": 3,
+              "widgetType": "bar"
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 4,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "bar_age_group",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "patient_demographics",
+                  "fields": [
+                    {
+                      "name": "age_group",
+                      "expression": "`age_group`"
+                    },
+                    {
+                      "name": "measure(patient_count)",
+                      "expression": "MEASURE(`patient_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "data": {
+                "queryName": "main_query"
+              },
+              "encodings": {
+                "x": {
+                  "displayName": "연령대",
+                  "fieldName": "age_group",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "displayName": "환자 수",
+                  "fieldName": "measure(patient_count)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "연령대별 환자분포"
+              },
+              "version": 3,
+              "widgetType": "line"
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 5,
+            "width": 8,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "bar_race",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "patient_demographics",
+                  "fields": [
+                    {
+                      "name": "race",
+                      "expression": "`race`"
+                    },
+                    {
+                      "name": "measure(patient_count)",
+                      "expression": "MEASURE(`patient_count`)"
+                    }
+                  ],
+                  "disaggregated": false,
+                  "orders": [
+                    {
+                      "direction": "DESC",
+                      "expression": "MEASURE(`patient_count`)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "data": {
+                "queryName": "main_query"
+              },
+              "encodings": {
+                "x": {
+                  "displayName": "인종",
+                  "fieldName": "race",
+                  "scale": {
+                    "sort": {
+                      "by": "measure-reversed",
+                      "measure": {
+                        "fieldName": "measure(patient_count)"
+                      }
+                    },
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "displayName": "환자 수",
+                  "fieldName": "measure(patient_count)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "인종별 분포"
+              },
+              "version": 3,
+              "widgetType": "bar"
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 17,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "bar_ethnicity",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "patient_demographics",
+                  "fields": [
+                    {
+                      "name": "ethnicity",
+                      "expression": "`ethnicity`"
+                    },
+                    {
+                      "name": "measure(patient_count)",
+                      "expression": "MEASURE(`patient_count`)"
+                    }
+                  ],
+                  "disaggregated": false,
+                  "orders": [
+                    {
+                      "direction": "DESC",
+                      "expression": "MEASURE(`patient_count`)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "data": {
+                "queryName": "main_query"
+              },
+              "encodings": {
+                "x": {
+                  "displayName": "민족",
+                  "fieldName": "ethnicity",
+                  "scale": {
+                    "sort": {
+                      "by": "measure-reversed",
+                      "measure": {
+                        "fieldName": "measure(patient_count)"
+                      }
+                    },
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "displayName": "환자 수",
+                  "fieldName": "measure(patient_count)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "민족별 분포"
+              },
+              "version": 3,
+              "widgetType": "bar"
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 17,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "d1",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "patient_demographics",
+                  "fields": [
+                    {
+                      "name": "age_group",
+                      "expression": "`age_group`"
+                    },
+                    {
+                      "name": "measure(deceased_count)",
+                      "expression": "MEASURE(`deceased_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "data": {
+                "queryName": "main_query"
+              },
+              "encodings": {
+                "x": {
+                  "axis": {
+                    "title": "연령대"
+                  },
+                  "fieldName": "age_group",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "axis": {
+                    "title": "사망자 수"
+                  },
+                  "fieldName": "measure(deceased_count)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "연령대별 환자 사망 수 분포"
+              },
+              "version": 3,
+              "widgetType": "line"
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 11,
+            "width": 8,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "seongbyeol-h",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "patient_demographics",
+                  "fields": [
+                    {
+                      "name": "gender",
+                      "expression": "`gender`"
+                    },
+                    {
+                      "name": "measure(deceased_count)",
+                      "expression": "MEASURE(`deceased_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "data": {
+                "queryName": "main_query"
+              },
+              "encodings": {
+                "label": {
+                  "show": false
+                },
+                "x": {
+                  "axis": {
+                    "title": "성별"
+                  },
+                  "fieldName": "gender",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "axis": {
+                    "title": "사망자 수"
+                  },
+                  "fieldName": "measure(deceased_count)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "성별 사망자 분포"
+              },
+              "version": 3,
+              "widgetType": "bar"
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 11,
+            "width": 4,
+            "height": 6
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    },
+    {
+      "name": "visit_trends",
+      "displayName": "방문 현황",
+      "layout": [
+        {
+          "widget": {
+            "name": "header_p2",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## 방문 현황\n",
+                "임상환자 방문 건수 및 시간적 추이 분석 (OMOP CDM `visit_occurrence` 기반)"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "counter_visit_total",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "visit_trends",
+                  "fields": [
+                    {
+                      "name": "measure(visit_count)",
+                      "expression": "MEASURE(`visit_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "data": {
+                "queryName": "main_query"
+              },
+              "encodings": {
+                "value": {
+                  "displayName": "전체 방문 수",
+                  "fieldName": "measure(visit_count)",
+                  "format": {
+                    "abbreviation": "compact",
+                    "type": "number-plain"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "전체 방문 수"
+              },
+              "version": 2,
+              "widgetType": "counter"
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 6,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "counter_visit_patients",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "visit_trends",
+                  "fields": [
+                    {
+                      "name": "measure(patient_count)",
+                      "expression": "MEASURE(`patient_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "data": {
+                "queryName": "main_query"
+              },
+              "encodings": {
+                "value": {
+                  "displayName": "방문 환자 수",
+                  "fieldName": "measure(patient_count)",
+                  "format": {
+                    "abbreviation": "compact",
+                    "type": "number-plain"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "방문 환자 수"
+              },
+              "version": 2,
+              "widgetType": "counter"
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 2,
+            "width": 6,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "line_monthly",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "visit_trends",
+                  "fields": [
+                    {
+                      "name": "visit_month",
+                      "expression": "`visit_month`"
+                    },
+                    {
+                      "name": "measure(visit_count)",
+                      "expression": "MEASURE(`visit_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "data": {
+                "queryName": "main_query"
+              },
+              "encodings": {
+                "x": {
+                  "displayName": "방문 월",
+                  "fieldName": "visit_month",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "displayName": "방문 건수",
+                  "fieldName": "measure(visit_count)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "월별 방문 추이"
+              },
+              "version": 3,
+              "widgetType": "line"
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 12,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "bar_yearly",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "visit_trends",
+                  "fields": [
+                    {
+                      "name": "visit_year",
+                      "expression": "`visit_year`"
+                    },
+                    {
+                      "name": "measure(visit_count)",
+                      "expression": "MEASURE(`visit_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "data": {
+                "queryName": "main_query"
+              },
+              "encodings": {
+                "x": {
+                  "displayName": "방문 연도",
+                  "fieldName": "visit_year",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "displayName": "방문 건수",
+                  "fieldName": "measure(visit_count)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "연도별 방문 현황"
+              },
+              "version": 3,
+              "widgetType": "bar"
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 12,
+            "width": 12,
+            "height": 7
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    },
+    {
+      "name": "conditions_drugs",
+      "displayName": "질병 및 처방 현황",
+      "layout": [
+        {
+          "widget": {
+            "name": "header_p3",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## 질병 및 처방 현황\n",
+                "발생 건수 기준 상위 20개 질병 및 처방 약물 현황 분석 (OMOP CDM `condition_occurrence`, `drug_exposure` 기반)"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "bar_conditions",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "top_conditions",
+                  "fields": [
+                    {
+                      "name": "sum(occurrence_count)",
+                      "expression": "SUM(`occurrence_count`)"
+                    },
+                    {
+                      "name": "condition_name",
+                      "expression": "`condition_name`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "data": {
+                "queryName": "main_query"
+              },
+              "encodings": {
+                "x": {
+                  "displayName": "발생 건수",
+                  "fieldName": "sum(occurrence_count)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "y": {
+                  "displayName": "질병명",
+                  "fieldName": "condition_name",
+                  "scale": {
+                    "sort": {
+                      "by": "x-reversed"
+                    },
+                    "type": "categorical"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "상위 20 질병"
+              },
+              "version": 3,
+              "widgetType": "bar"
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 6,
+            "height": 12
+          }
+        },
+        {
+          "widget": {
+            "name": "bar_drugs",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "top_drugs",
+                  "fields": [
+                    {
+                      "name": "sum(exposure_count)",
+                      "expression": "SUM(`exposure_count`)"
+                    },
+                    {
+                      "name": "drug_name",
+                      "expression": "`drug_name`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "data": {
+                "queryName": "main_query"
+              },
+              "encodings": {
+                "x": {
+                  "displayName": "처방 건수",
+                  "fieldName": "sum(exposure_count)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "y": {
+                  "displayName": "약물명",
+                  "fieldName": "drug_name",
+                  "scale": {
+                    "sort": {
+                      "by": "x-reversed"
+                    },
+                    "type": "categorical"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "상위 20 처방 약물"
+              },
+              "version": 3,
+              "widgetType": "bar"
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 2,
+            "width": 6,
+            "height": 12
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "canvasBackgroundColor": {
+        "light": "#EEF2F7",
+        "dark": "#0D1B2A"
+      },
+      "widgetBackgroundColor": {
+        "light": "#FFFFFF",
+        "dark": "#162435"
+      },
+      "widgetBorderColor": {
+        "light": "#D0DCE8",
+        "dark": "#1E3045"
+      },
+      "fontColor": {
+        "light": "#1A2B3C",
+        "dark": "#D8E8F4"
+      },
+      "visualizationColors": [
+        "#1A6FAF",
+        "#26A69A",
+        "#EF5350",
+        "#FF8F00",
+        "#7B1FA2",
+        "#43A047",
+        "#0288D1",
+        "#E91E63",
+        "#546E7A",
+        "#F57F17"
+      ],
+      "widgetHeaderAlignment": "LEFT",
+      "fontFamily": "Noto Sans",
+      "widgetPadding": 16,
+      "widgetMargin": 8,
+      "widgetCornerRadius": 8,
+      "widgetShadow": 10,
+      "fontSettings": {
+        "base": {
+          "fontFamily": "Noto Sans",
+          "fontSize": 12
+        },
+        "widgetTitle": {
+          "fontSize": 14,
+          "fontWeight": 700
+        },
+        "fieldValue": {
+          "fontWeight": 600
+        }
+      },
+      "gridLineColor": {
+        "light": "#E0E8F0",
+        "dark": "#1E3045"
+      },
+      "axisLineColor": {
+        "light": "#B0C4D8",
+        "dark": "#2A4060"
+      }
+    },
+    "applyModeEnabled": false
+  }
+}

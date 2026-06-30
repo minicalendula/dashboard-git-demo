@@ -1,0 +1,6 @@
+resources:
+  dashboards:
+    healthcare_dashboard:
+      display_name: "Healthcare_Dashboard"
+      warehouse_id: fbdf48535d40331c
+      file_path: ../src/healthcare_dashboard.lvdash.json
