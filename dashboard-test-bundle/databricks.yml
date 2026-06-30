@@ -13,15 +13,17 @@ targets:
     default: true
     workspace:
       host: https://adb-7405612683987992.12.azuredatabricks.net
+      
 
   # The 'prod' target, used for production deployment.
-  prod:
+  test:
     mode: production
+
     workspace:
       host: https://adb-7405612683987992.12.azuredatabricks.net
       # We always use /Users/kskwon@cnthoth-domo.com for all resources to make sure we only have a single copy.
-      root_path: /Users/kskwon@cnthoth-domo.com/.bundle/${bundle.name}/${bundle.target}
+      #root_path: /Users/kskwon@cnthoth-domo.com/.bundle/${bundle.name}/${bundle.target}
     run_as:
+      user_name: kskwon@cnthoth-domo.com
       # This runs as kskwon@cnthoth-domo.com in production. We could also use a service principal here,
       # see https://docs.databricks.com/dev-tools/bundles/permissions.html.
-      user_name: kskwon@cnthoth-domo.com
