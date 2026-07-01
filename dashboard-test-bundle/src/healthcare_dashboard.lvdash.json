@@ -72,48 +72,49 @@
       "name": "patient_demographics",
       "displayName": "환자 인구통계",
       "config": {
+        "version": "1.1",
+        "source": "SELECT \r\n  p.person_id,\r\n  p.gender_source_value,\r\n  c.concept_name as race_name,\r\n  o.concept_name as ethnicity_name,\r\n  p.year_of_birth,\r\n  (2026 - p.year_of_birth) AS age,\r\n  CASE\r\n    WHEN (2026 - p.year_of_birth) < 18 THEN '0-17세'\r\n    WHEN (2026 - p.year_of_birth) BETWEEN 18 AND 29 THEN '18-29세'\r\n    WHEN (2026 - p.year_of_birth) BETWEEN 30 AND 39 THEN '30-39세'\r\n    WHEN (2026 - p.year_of_birth) BETWEEN 40 AND 49 THEN '40-49세'\r\n    WHEN (2026 - p.year_of_birth) BETWEEN 50 AND 59 THEN '50-59세'\r\n    WHEN (2026 - p.year_of_birth) BETWEEN 60 AND 69 THEN '60-69세'\r\n    WHEN (2026 - p.year_of_birth) >= 70 THEN '70세 이상'\r\n    ELSE '미상'\r\n  END AS age_group,\r\n  p.birth_datetime,\r\n  CASE WHEN d.person_id IS NOT NULL THEN 1 ELSE 0 END AS is_deceased\r\nFROM cntdatabricksdemo_lakehouse01.cnt_healthcare_gold_omop.person p LEFT JOIN cntdatabricksdemo_lakehouse01.cnt_healthcare_gold_omop.death d\r\n  ON p.person_id = d.person_id\r\n  JOIN cntdatabricksdemo_lakehouse01.cnt_healthcare_gold_omop.concept c\r\n  ON p.race_concept_id = c.concept_id\r\n  JOIN cntdatabricksdemo_lakehouse01.cnt_healthcare_gold_omop.concept o\r\n  ON p.ethnicity_concept_id = o.concept_id\r\n",
         "dimensions": [
           {
-            "expr": "gender_source_value",
-            "name": "gender"
+            "name": "gender",
+            "expr": "gender_source_value"
           },
           {
-            "expr": "race_source_value",
-            "name": "race"
+            "name": "race",
+            "expr": "source.race_name"
           },
           {
-            "expr": "ethnicity_source_value",
-            "name": "ethnicity"
+            "name": "ethnicity",
+            "expr": "source.ethnicity_name",
+            "displayName": "Ethnicity"
           },
           {
-            "expr": "age_group",
-            "name": "age_group"
+            "name": "age_group",
+            "expr": "age_group"
           },
           {
-            "expr": "year_of_birth",
-            "name": "birth_year"
+            "name": "birth_year",
+            "expr": "year_of_birth"
           },
           {
-            "expr": "birth_datetime",
-            "name": "birth_date"
+            "name": "birth_date",
+            "expr": "birth_datetime"
           }
         ],
         "measures": [
           {
-            "expr": "COUNT(DISTINCT person_id)",
-            "name": "patient_count"
+            "name": "patient_count",
+            "expr": "COUNT(DISTINCT person_id)"
           },
           {
-            "expr": "SUM(is_deceased)",
-            "name": "deceased_count"
+            "name": "deceased_count",
+            "expr": "SUM(is_deceased)"
           },
           {
-            "expr": "AVG(age)",
-            "name": "avg_age"
+            "name": "avg_age",
+            "expr": "AVG(age)"
           }
-        ],
-        "source": "SELECT \n  p.person_id,\n  p.gender_source_value,\n  p.race_source_value,\n  p.ethnicity_source_value,\n  p.year_of_birth,\n  (2026 - p.year_of_birth) AS age,\n  CASE\n    WHEN (2026 - p.year_of_birth) < 18 THEN '0-17세'\n    WHEN (2026 - p.year_of_birth) BETWEEN 18 AND 29 THEN '18-29세'\n    WHEN (2026 - p.year_of_birth) BETWEEN 30 AND 39 THEN '30-39세'\n    WHEN (2026 - p.year_of_birth) BETWEEN 40 AND 49 THEN '40-49세'\n    WHEN (2026 - p.year_of_birth) BETWEEN 50 AND 59 THEN '50-59세'\n    WHEN (2026 - p.year_of_birth) BETWEEN 60 AND 69 THEN '60-69세'\n    WHEN (2026 - p.year_of_birth) >= 70 THEN '70세 이상'\n    ELSE '미상'\n  END AS age_group,\n  p.birth_datetime,\n  CASE WHEN d.person_id IS NOT NULL THEN 1 ELSE 0 END AS is_deceased\nFROM cntdatabricksdemo_lakehouse01.cnt_healthcare_gold_omop.person p LEFT JOIN cntdatabricksdemo_lakehouse01.cnt_healthcare_gold_omop.death d\n  ON p.person_id = d.person_id\n",
-        "version": "1.1"
+        ]
       }
     }
   ],
@@ -158,25 +159,29 @@
               }
             ],
             "spec": {
-              "data": {
-                "queryName": "main_query"
-              },
-              "encodings": {
-                "value": {
-                  "displayName": "전체 환자 수",
-                  "fieldName": "measure(patient_count)",
-                  "format": {
-                    "abbreviation": "compact",
-                    "type": "number-plain"
-                  }
-                }
-              },
               "frame": {
                 "showTitle": true,
                 "title": "전체 환자 수"
               },
               "version": 2,
-              "widgetType": "counter"
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(patient_count)",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "exact",
+                      "places": 2
+                    }
+                  },
+                  "displayName": "전체 환자 수"
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
             }
           },
           "position": {
@@ -205,29 +210,31 @@
               }
             ],
             "spec": {
-              "data": {
-                "queryName": "main_query"
-              },
-              "encodings": {
-                "value": {
-                  "displayName": "평균 연령 (세)",
-                  "fieldName": "measure(avg_age)",
-                  "format": {
-                    "abbreviation": "none",
-                    "decimalPlaces": {
-                      "places": 1,
-                      "type": "exact"
-                    },
-                    "type": "number-plain"
-                  }
-                }
-              },
               "frame": {
                 "showTitle": true,
                 "title": "평균 연령"
               },
               "version": 2,
-              "widgetType": "counter"
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(avg_age)",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "none",
+                    "decimalPlaces": {
+                      "places": 1,
+                      "type": "exact"
+                    },
+                    "negativeSign": "accounting"
+                  },
+                  "formatTemplate": "{{ @formatted }} 세",
+                  "displayName": "평균 연령 (세)"
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
             }
           },
           "position": {
@@ -408,56 +415,50 @@
                   "datasetName": "patient_demographics",
                   "fields": [
                     {
-                      "name": "race",
-                      "expression": "`race`"
-                    },
-                    {
                       "name": "measure(patient_count)",
                       "expression": "MEASURE(`patient_count`)"
+                    },
+                    {
+                      "name": "race",
+                      "expression": "`race`"
                     }
                   ],
-                  "disaggregated": false,
-                  "orders": [
-                    {
-                      "direction": "DESC",
-                      "expression": "MEASURE(`patient_count`)"
-                    }
-                  ]
+                  "disaggregated": false
                 }
               }
             ],
             "spec": {
-              "data": {
-                "queryName": "main_query"
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "인종별 분포",
+                "showDescription": false
               },
+              "widgetType": "pie",
               "encodings": {
-                "x": {
-                  "displayName": "인종",
-                  "fieldName": "race",
-                  "scale": {
-                    "sort": {
-                      "by": "measure-reversed",
-                      "measure": {
-                        "fieldName": "measure(patient_count)"
-                      }
-                    },
-                    "type": "categorical"
-                  }
-                },
-                "y": {
-                  "displayName": "환자 수",
+                "angle": {
                   "fieldName": "measure(patient_count)",
                   "scale": {
                     "type": "quantitative"
+                  },
+                  "displayName": "환자 수"
+                },
+                "color": {
+                  "fieldName": "race",
+                  "displayName": "인종",
+                  "scale": {
+                    "type": "categorical"
                   }
                 }
               },
-              "frame": {
-                "showTitle": true,
-                "title": "인종별 분포"
-              },
-              "version": 3,
-              "widgetType": "bar"
+              "data": {
+                "queryName": "main_query"
+              }
+            },
+            "specExtensions": {
+              "widgetBorderColor": {
+                "light": "#BAE6AC"
+              }
             }
           },
           "position": {
@@ -477,56 +478,44 @@
                   "datasetName": "patient_demographics",
                   "fields": [
                     {
-                      "name": "ethnicity",
-                      "expression": "`ethnicity`"
-                    },
-                    {
                       "name": "measure(patient_count)",
                       "expression": "MEASURE(`patient_count`)"
+                    },
+                    {
+                      "name": "ethnicity",
+                      "expression": "`ethnicity`"
                     }
                   ],
-                  "disaggregated": false,
-                  "orders": [
-                    {
-                      "direction": "DESC",
-                      "expression": "MEASURE(`patient_count`)"
-                    }
-                  ]
+                  "disaggregated": false
                 }
               }
             ],
             "spec": {
-              "data": {
-                "queryName": "main_query"
-              },
-              "encodings": {
-                "x": {
-                  "displayName": "민족",
-                  "fieldName": "ethnicity",
-                  "scale": {
-                    "sort": {
-                      "by": "measure-reversed",
-                      "measure": {
-                        "fieldName": "measure(patient_count)"
-                      }
-                    },
-                    "type": "categorical"
-                  }
-                },
-                "y": {
-                  "displayName": "환자 수",
-                  "fieldName": "measure(patient_count)",
-                  "scale": {
-                    "type": "quantitative"
-                  }
-                }
-              },
+              "version": 3,
               "frame": {
                 "showTitle": true,
                 "title": "민족별 분포"
               },
-              "version": 3,
-              "widgetType": "bar"
+              "widgetType": "pie",
+              "encodings": {
+                "angle": {
+                  "fieldName": "measure(patient_count)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "환자 수"
+                },
+                "color": {
+                  "fieldName": "ethnicity",
+                  "displayName": "민족",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
             }
           },
           "position": {
