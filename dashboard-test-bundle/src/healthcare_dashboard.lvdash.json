@@ -596,12 +596,12 @@
                   "datasetName": "patient_demographics",
                   "fields": [
                     {
-                      "name": "gender",
-                      "expression": "`gender`"
-                    },
-                    {
                       "name": "measure(deceased_count)",
                       "expression": "MEASURE(`deceased_count`)"
+                    },
+                    {
+                      "name": "gender",
+                      "expression": "`gender`"
                     }
                   ],
                   "disaggregated": false
@@ -609,38 +609,29 @@
               }
             ],
             "spec": {
-              "data": {
-                "queryName": "main_query"
-              },
-              "encodings": {
-                "label": {
-                  "show": false
-                },
-                "x": {
-                  "axis": {
-                    "title": "성별"
-                  },
-                  "fieldName": "gender",
-                  "scale": {
-                    "type": "categorical"
-                  }
-                },
-                "y": {
-                  "axis": {
-                    "title": "사망자 수"
-                  },
-                  "fieldName": "measure(deceased_count)",
-                  "scale": {
-                    "type": "quantitative"
-                  }
-                }
-              },
+              "version": 3,
               "frame": {
                 "showTitle": true,
                 "title": "성별 사망자 분포"
               },
-              "version": 3,
-              "widgetType": "bar"
+              "widgetType": "pie",
+              "encodings": {
+                "angle": {
+                  "fieldName": "measure(deceased_count)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "gender",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
             }
           },
           "position": {
